@@ -1,0 +1,71 @@
+PODS:
+  - Flutter (1.0.0)
+  - myscript_iink (0.0.1):
+    - Flutter
+    - MyScriptInteractiveInk-Runtime (= 1.2.2)
+  - MyScriptInteractiveInk-Runtime (1.2.2)
+  - notepad_core (0.0.1):
+    - Flutter
+  - notepad_core_macos (0.0.1):
+    - Flutter
+  - notepad_core_web (0.0.1):
+    - Flutter
+  - path_provider (0.0.1):
+    - Flutter
+  - path_provider_linux (0.0.1):
+    - Flutter
+  - path_provider_macos (0.0.1):
+    - Flutter
+  - permission_handler (4.0.3):
+    - Flutter
+
+DEPENDENCIES:
+  - Flutter (from `.symlinks/flutter/ios`)
+  - myscript_iink (from `.symlinks/plugins/myscript_iink/ios`)
+  - notepad_core (from `.symlinks/plugins/notepad_core/ios`)
+  - notepad_core_macos (from `.symlinks/plugins/notepad_core_macos/ios`)
+  - notepad_core_web (from `.symlinks/plugins/notepad_core_web/ios`)
+  - path_provider (from `.symlinks/plugins/path_provider/ios`)
+  - path_provider_linux (from `.symlinks/plugins/path_provider_linux/ios`)
+  - path_provider_macos (from `.symlinks/plugins/path_provider_macos/ios`)
+  - permission_handler (from `.symlinks/plugins/permission_handler/ios`)
+
+SPEC REPOS:
+  trunk:
+    - MyScriptInteractiveInk-Runtime
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: ".symlinks/flutter/ios"
+  myscript_iink:
+    :path: ".symlinks/plugins/myscript_iink/ios"
+  notepad_core:
+    :path: ".symlinks/plugins/notepad_core/ios"
+  notepad_core_macos:
+    :path: ".symlinks/plugins/notepad_core_macos/ios"
+  notepad_core_web:
+    :path: ".symlinks/plugins/notepad_core_web/ios"
+  path_provider:
+    :path: ".symlinks/plugins/path_provider/ios"
+  path_provider_linux:
+    :path: ".symlinks/plugins/path_provider_linux/ios"
+  path_provider_macos:
+    :path: ".symlinks/plugins/path_provider_macos/ios"
+  permission_handler:
+    :path: ".symlinks/plugins/permission_handler/ios"
+
+SPEC CHECKSUMS:
+  Flutter: 0e3d915762c693b495b44d77113d4970485de6ec
+  myscript_iink: eb194716ee1dae8d53eacaa0091406d041d0aeb1
+  MyScriptInteractiveInk-Runtime: a817229221180ece1b8d1253fdef98263b34a0ce
+  notepad_core: 8e7060fe59a9b87ebc2e59a2aca15e49d15a94f6
+  notepad_core_macos: d0ba61b267175fd988dd3b798331cebddde0d03f
+  notepad_core_web: 3cf58882a33b51cc49f5e3061b6db3b54dc06670
+  path_provider: abfe2b5c733d04e238b0d8691db0cfd63a27a93c
+  path_provider_linux: 4d630dc393e1f20364f3e3b4a2ff41d9674a84e4
+  path_provider_macos: f760a3c5b04357c380e2fddb6f9db6f3015897e0
+  permission_handler: 69f8d57746cfbdc00b53fac1768577e567c67968
+
+PODFILE CHECKSUM: dddf42101a5d915ea37d98d701179b83838b712f
+
+COCOAPODS: 1.8.4
