@@ -49,6 +49,17 @@ class _IInkViewPageState extends State<IInkViewPage> {
         title: Text('IInkView'),
         actions: <Widget>[
           FlatButton(
+            child: Text('Myscript'),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => FunctionListWidget(
+                  items: myscriptList,
+                ),
+              );
+            },
+          ),
+          FlatButton(
             child: Text('Notepad'),
             onPressed: () {
               Navigator.of(context).push(
@@ -137,14 +148,29 @@ class _IInkViewPageState extends State<IInkViewPage> {
             },
           ),
           RaisedButton(
-            child: Text('Myscript'),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => FunctionListWidget(
-                  items: myscriptList,
-                ),
-              );
+            child: Text('SyncMemo'),
+            onPressed: () async {
+              //  先清空当前的笔记
+              await editorController.clear();
+
+              //  检测离线笔记的数量
+              var m = await sNotepadManager.getMemoSummary();
+              if (m.memoCount == 0) {
+                Toast.toast(context, msg: '请在COMMON模式下书写离线笔记');
+                return;
+              }
+
+              //  开始导入离线笔记(只导入栈顶的那个笔记)
+              var memoData = await sNotepadManager.importStackTopMemo();
+
+              //  格式化点位信息
+              var pointerEvents = formatPointerEvents(memoData.pointers);
+
+              //  交给myscript
+              await editorController.syncPointerEvents(pointerEvents);
+
+              //  删除设备中栈顶的笔记
+              await sNotepadManager.deleteMemo();
             },
           ),
         ],
