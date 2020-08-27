@@ -78,7 +78,8 @@ class _NotepadDetailPageState extends State<NotepadDetailPage> {
       notepadList = [
         FunctionItem('connect', callBack: connect),
         FunctionItem('disconnect', callBack: disconnect),
-        FunctionItem('setMode', callBack: setMode),
+        FunctionItem('setMode：COMMON', callBack: setCommonMode),
+        FunctionItem('setMode：SYNC', callBack: setSyncMode),
         FunctionItem('claimAuth', callBack: claimAuth),
         FunctionItem('disclaimAuth', callBack: disClaimAuth),
         FunctionItem('getDeviceSize', callBack: getDeviceSize),
@@ -112,9 +113,14 @@ class _NotepadDetailPageState extends State<NotepadDetailPage> {
     _toast('disconnect success');
   }
 
-  Future<void> setMode() async {
+  Future<void> setCommonMode() async {
+    await sNotepadManager.setMode(NotepadMode.Common);
+    _toast('setCommonMode succes：书写的笔迹将存储在智能本');
+  }
+
+  Future<void> setSyncMode() async {
     await sNotepadManager.setMode(NotepadMode.Sync);
-    _toast('setMode success');
+    _toast('setSyncMode success：书写的笔迹将直接传输给已连接的App');
   }
 
 
