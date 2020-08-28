@@ -150,8 +150,11 @@ class _IInkViewPageState extends State<IInkViewPage> {
           RaisedButton(
             child: Text('SyncMemo'),
             onPressed: () async {
-              //  先清空当前的笔记
-              await editorController.clear();
+              //  连接设备
+              if (sNotepadManager.notepadState != NotepadState.Connected) {
+                Toast.toast(context, msg: '请先连接设备');
+                return;
+              }
 
               //  检测离线笔记的数量
               var m = await sNotepadManager.getMemoSummary();
@@ -159,6 +162,9 @@ class _IInkViewPageState extends State<IInkViewPage> {
                 Toast.toast(context, msg: '请在COMMON模式下书写离线笔记');
                 return;
               }
+
+              //  先清空当前的笔记
+              await editorController.clear();
 
               //  开始导入离线笔记(只导入栈顶的那个笔记)
               var memoData = await sNotepadManager.importStackTopMemo();
@@ -171,6 +177,9 @@ class _IInkViewPageState extends State<IInkViewPage> {
 
               //  删除设备中栈顶的笔记
               await sNotepadManager.deleteMemo();
+
+              //  立即进行识别
+              await exportText();
             },
           ),
         ],
