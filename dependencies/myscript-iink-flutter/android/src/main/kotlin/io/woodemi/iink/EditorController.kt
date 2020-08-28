@@ -252,6 +252,7 @@ class EditorController(messenger: BinaryMessenger, channelName: String) : Method
                     this.editor.part.`package`.save()
                 }
             }
+            this.editor.waitForIdle()
         }
     }
 
