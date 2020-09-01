@@ -58,7 +58,7 @@ SPEC CHECKSUMS:
   Flutter: 0e3d915762c693b495b44d77113d4970485de6ec
   myscript_iink: eb194716ee1dae8d53eacaa0091406d041d0aeb1
   MyScriptInteractiveInk-Runtime: a817229221180ece1b8d1253fdef98263b34a0ce
-  notepad_core: 8e7060fe59a9b87ebc2e59a2aca15e49d15a94f6
+  notepad_core: c1035346a4acc276e4d6c6e3d976dd38e4df3f1a
   notepad_core_macos: d0ba61b267175fd988dd3b798331cebddde0d03f
   notepad_core_web: 3cf58882a33b51cc49f5e3061b6db3b54dc06670
   path_provider: abfe2b5c733d04e238b0d8691db0cfd63a27a93c

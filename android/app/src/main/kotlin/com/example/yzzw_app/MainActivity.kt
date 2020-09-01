@@ -10,6 +10,6 @@ import com.myscript.woodemi.MyCertificate
 class MainActivity: FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        MyscriptIinkPlugin.initWithCertificate(this, MyCertificate.getBytes())
+        MyscriptIinkPlugin.saveCertificate(this, MyCertificate.getBytes())
     }
 }

@@ -11,22 +11,10 @@ IInkViewFactory *iInkViewFactory;
 
 static NSObject<FlutterPluginRegistrar> *iink_registrar;
 static NSMutableDictionary *iink_controllers;
+static NSData *iink_certificate;
 
-+ (void)initWithCertificate:(nonnull NSData *)certificate {
-    engine = [[IINKEngine alloc] initWithCertificate:certificate];
-    if (engine == nil) {
-        NSLog(@"Invalid certificate");
-        //  TODO   engine初始化失败，需增加重新初始化机制
-        return;
-    }
-    
-    // Configure the iink runtime environment
-    NSString *bundlePath = [[NSBundle mainBundle] bundlePath];
-    NSString *configurationPath = [bundlePath stringByAppendingString:@"/recognition-assets/conf"];
-    [engine.configuration setStringArray:@[configurationPath] forKey:@"configuration-manager.search-path" error:nil];
-    [engine.configuration setBoolean:false forKey:@"text.guides.enable" error:nil];
-    [engine.configuration setString:NSTemporaryDirectory() forKey:@"content-package.temp-folder" error:nil];
-    [engine.configuration setBoolean:false forKey:@"gesture.enable" error:nil]; // 设置 智能手势
++ (void)saveCertificate:(nonnull NSData *)certificate {
+    iink_certificate = certificate;
 }
 
 + (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
@@ -40,7 +28,22 @@ static NSMutableDictionary *iink_controllers;
 
 #pragma mark
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
-    if ([@"createEditorControllerChannel" isEqualToString:call.method]) {
+    if ([@"initMyscript" isEqualToString:call.method]) {
+        engine = [[IINKEngine alloc] initWithCertificate:iink_certificate];
+        if (engine == nil) {
+            NSLog(@"Invalid certificate");
+            //  TODO   engine初始化失败，需增加重新初始化机制
+            return;
+        }
+        // Configure the iink runtime environment
+        NSString *bundlePath = [[NSBundle mainBundle] bundlePath];
+        NSString *configurationPath = [bundlePath stringByAppendingString:@"/recognition-assets/conf"];
+        [engine.configuration setStringArray:@[configurationPath] forKey:@"configuration-manager.search-path" error:nil];
+        [engine.configuration setBoolean:false forKey:@"text.guides.enable" error:nil];
+        [engine.configuration setString:NSTemporaryDirectory() forKey:@"content-package.temp-folder" error:nil];
+        [engine.configuration setBoolean:false forKey:@"gesture.enable" error:nil]; // 设置 智能手势
+        result(nil);
+    } else if ([@"createEditorControllerChannel" isEqualToString:call.method]) {
         NSDictionary * dictionary = call.arguments;
         NSString *channelName = dictionary[@"channelName"];
         [self createChannel:channelName];

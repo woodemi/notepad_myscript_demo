@@ -9,7 +9,6 @@ import io.woodemi.iink.MyscriptIinkPlugin
 class MainActivity: FlutterActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    MyscriptIinkPlugin.initWithCertificate(this, MyCertificate.getBytes())
-    GeneratedPluginRegistrant.registerWith(this)
+    MyscriptIinkPlugin.saveCertificate(this, MyCertificate.getBytes())
   }
 }

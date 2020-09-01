@@ -16,11 +16,20 @@ class _ConfigMyscriptEngineState extends State<ConfigMyscriptEngine> {
     setState(() {
       functionList = [
         FunctionItem(
+          'initMyscript',
+          content: 'initMyscript before use myscript',
+          callBack: () async {
+            await MyscriptIink.initMyscript();
+            Toast.toast(context, msg: 'initMyscript success');
+          },
+        ),
+        FunctionItem(
           'setEngineLanguage: Current-Language zh-CN',
           content: 'Config MyScript Engine before create file(pts)',
           callBack: () async {
             await MyscriptIink.setEngineConfiguration_Language('zh_CN');
-            Toast.toast(context, msg: 'setEngineConfiguration_Language success');
+            Toast.toast(context,
+                msg: 'setEngineConfiguration_Language success');
           },
         ),
         //  TODO add get EngineConfigurationInfo(比如：language)

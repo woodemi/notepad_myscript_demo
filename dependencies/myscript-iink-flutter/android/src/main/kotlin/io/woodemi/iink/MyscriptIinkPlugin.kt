@@ -34,18 +34,14 @@ class MyscriptIinkPlugin: MethodCallHandler {
         lateinit var displayMetrics: DisplayMetrics
             private set
 
+        lateinit var iink_context: Context
+        lateinit var iink_bytes: ByteArray
+
         @JvmStatic
-        fun initWithCertificate(context: Context, bytes: ByteArray) {
-            Log.d(EditorController.TAG, "Android initWithCertificate")
-            engine = Engine.create(bytes)
-            val confDir = "zip://${context.packageCodePath}!/assets/recognition-assets/conf"
-            engine.configuration.setStringArray("configuration-manager.search-path", arrayOf(confDir))
-            engine.configuration.setBoolean("text.guides.enable", false)
-            engine.configuration.setString("content-package.temp-folder", "${context.filesDir.path}/tmp")
-            engine.configuration.setBoolean("gesture.enable", false)
-            typefaceMap = FontUtils.loadFontsFromAssets(context.assets)
-            fontMetricsProvider = FontMetricsProvider(context.resources.displayMetrics, typefaceMap)
-            displayMetrics = context.resources.displayMetrics
+        fun saveCertificate(context: Context, bytes: ByteArray) {
+            Log.d(EditorController.TAG, "Android saveCertificate")
+            iink_context = context;
+            iink_bytes = bytes;
         }
 
         lateinit var iink_registrar: Registrar
@@ -61,6 +57,18 @@ class MyscriptIinkPlugin: MethodCallHandler {
 
     override fun onMethodCall(call: MethodCall, result: Result) {
         when (call.method) {
+            "initMyscript" -> {
+                engine = Engine.create(iink_bytes)
+                val confDir = "zip://${iink_context.packageCodePath}!/assets/recognition-assets/conf"
+                engine.configuration.setStringArray("configuration-manager.search-path", arrayOf(confDir))
+                engine.configuration.setBoolean("text.guides.enable", false)
+                engine.configuration.setString("content-package.temp-folder", "${iink_context.filesDir.path}/tmp")
+                engine.configuration.setBoolean("gesture.enable", false)
+                typefaceMap = FontUtils.loadFontsFromAssets(iink_context.assets)
+                fontMetricsProvider = FontMetricsProvider(iink_context.resources.displayMetrics, typefaceMap)
+                displayMetrics = iink_context.resources.displayMetrics
+                result.success(null)
+            }
             "createEditorControllerChannel" -> {
                 val channelName = call.argument<String>("channelName")!!
                 createChannel(channelName)

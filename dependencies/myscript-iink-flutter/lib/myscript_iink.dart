@@ -7,6 +7,10 @@ const MYSCRIPT_IINK_PACKAGE = 'myscript_iink';
 class MyscriptIink {
   static const MethodChannel _channel = const MethodChannel(MYSCRIPT_IINK_PACKAGE);
 
+  static Future<void> initMyscript() async {
+    await _channel.invokeMethod('initMyscript', {});
+  }
+
   static Future<void> createEditorControllerChannel(String channelName) async {
     await _channel.invokeMethod('createEditorControllerChannel', {'channelName': channelName});
   }

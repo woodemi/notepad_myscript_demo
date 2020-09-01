@@ -8,5 +8,5 @@ extern IINKEngine *engine;
 extern IInkViewFactory *iInkViewFactory;
 
 @interface MyscriptIinkPlugin : NSObject<FlutterPlugin>
-+ (void)initWithCertificate:(nonnull NSData *)certificate;
++ (void)saveCertificate:(nonnull NSData *)certificate;
 @end
