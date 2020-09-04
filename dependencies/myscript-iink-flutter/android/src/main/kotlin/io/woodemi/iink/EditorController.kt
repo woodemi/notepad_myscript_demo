@@ -175,6 +175,10 @@ class EditorController(messenger: BinaryMessenger, channelName: String) : Method
                     result.success(this.editor.canRedo())
                 }
             }
+            "waitForIdle" -> {
+                this.editor.waitForIdle()
+                mainThreadHandler.post { result.success(null) }
+            }
             else -> result.notImplemented()
         }
     }

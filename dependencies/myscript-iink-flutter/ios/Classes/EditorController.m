@@ -184,6 +184,9 @@ IINKPointerEventType parseEventType(NSString *eventType) {
             [self.editor redo];
         }
         result(@([self.editor canRedo]));
+    } else if ([@"waitForIdle" isEqualToString:call.method]) {
+        [self.editor waitForIdle];
+        result(nil);
     } else {
         result(FlutterMethodNotImplemented);
     }

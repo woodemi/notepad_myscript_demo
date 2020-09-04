@@ -238,4 +238,8 @@ class EditorController {
   Future<bool>redo() async {
     return await _methodChannel.invokeMethod('redo');
   }
+
+  Future<void> waitForIdle() async {
+    return await _methodChannel.invokeMethod('waitForIdle');
+  }
 }
