@@ -44,5 +44,5 @@ dependencies {
 
     implementation "androidx.annotation:annotation:1.1.0"
 
-    implementation 'com.myscript:iink:1.2.2'
+    implementation 'com.myscript:iink:1.4.1'
 }
