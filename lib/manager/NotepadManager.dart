@@ -83,6 +83,9 @@ class NotepadManager implements NotepadClientCallback {
   NotepadScanResult get connectedDevice =>
       _notepadState == NotepadState.Disconnected ? null : _currentDevice;
 
+  //  当前设备的模式
+  var deviceMode = NotepadMode.Common;
+
   NotepadClient _notepadClient;
 
   NotepadManager._internal() {
@@ -172,6 +175,7 @@ class NotepadManager implements NotepadClientCallback {
   disconnect() => notepadConnector.disconnect();
 
   Future<void> setMode(NotepadMode mode) async {
+    deviceMode = mode;
     return await _notepadClient.setMode(mode);
   }
 

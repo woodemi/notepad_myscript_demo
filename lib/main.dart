@@ -4,14 +4,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:myscript_iink/EditorController.dart';
+import 'package:notepad_myscript_demo/util/NormalScaffold.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:notepad_myscript_demo/ConnectDevice/DeviceList.dart';
-import 'package:notepad_myscript_demo/ConnectDevice/NotepadDetailPage.dart';
 import 'package:notepad_myscript_demo/HandleMyscript/ConfigMyscriptEngine.dart';
 import 'package:notepad_myscript_demo/HandleMyscript/IInkViewPage.dart';
 import 'package:notepad_myscript_demo/manager/NotepadManager.dart';
 import 'package:notepad_myscript_demo/manager/NotepadRealtime.dart';
 import 'package:notepad_myscript_demo/manager/NotepadUtil.dart';
+import 'package:notepad_myscript_demo/util/Toast.dart';
 
 void main() => runApp(MyApp());
 
@@ -28,25 +28,29 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  var list = List<FileSystemEntity>();
-
-  StreamSubscription<NotepadStateEvent> _notepadStateSubscription;
+  var ptsList = List<FileSystemEntity>();
 
   var realtimeFilePath = '';
 
   var deleteFileSwich = false;
 
+  var notepadState = NotepadState.Disconnected;
+
+  StreamSubscription<NotepadStateEvent> _notepadStateSubscription;
+
   @override
   void initState() {
     super.initState();
     _requestListDocumentsDirectory();
+
     _notepadStateSubscription =
         sNotepadManager.notepadStateStream.listen(_onNotepadStateEvent);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return buildScaffold(
+      context,
       appBar: AppBar(
         title: Text('FileList'),
         actions: <Widget>[
@@ -54,19 +58,6 @@ class _HomePageState extends State<HomePage> {
             child: Text('RefreshList'),
             onPressed: () async {
               await _requestListDocumentsDirectory();
-            },
-          ),
-          FlatButton(
-            child: Text('Notepad'),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) =>
-                      sNotepadManager.notepadState == NotepadState.Connected
-                          ? NotepadDetailPage(sNotepadManager.connectedDevice)
-                          : DeviceList(),
-                ),
-              );
             },
           ),
         ],
@@ -84,9 +75,9 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
+      notepadState: notepadState,
     );
   }
-
   buildMenu() {
     return Container(
       height: 60,
@@ -106,13 +97,51 @@ class _HomePageState extends State<HomePage> {
           RaisedButton(
             child: Text('CreateFile'),
             onPressed: () async {
-              var filePath = await NewFilePath();
-              var newController = await EditorController.create(filePath);
-              (await File(filePath).exists())
-                  ? await newController.openPackage(filePath)
-                  : await newController.createPackage(filePath);
-              await newController.clear();
-              await _requestListDocumentsDirectory();
+              if (!isInitMyscriptSuccess) {
+                Toast.toast(context,
+                    msg: 'Please initMyscript in "my-Settings"');
+                return;
+              }
+              try {
+                var filePath = await NewFilePath();
+                Toast.toast(
+                  context,
+                  msg: 'filePath = $filePath',
+                );
+                var newController = await EditorController.create(filePath);
+                Toast.toast(
+                  context,
+                  msg: 'EditorController.create(filePath)',
+                );
+                (await File(filePath).exists())
+                    ? await newController.openPackage(filePath)
+                    : await newController.createPackage(filePath);
+                Toast.toast(
+                  context,
+                  msg: 'EditorController.openPackage/createPackage',
+                );
+                await newController.exportText();
+                Toast.toast(
+                  context,
+                  msg: 'newController.exportText()',
+                );
+                await newController.clear();
+                Toast.toast(
+                  context,
+                  msg: 'newController.clear()',
+                );
+                await _requestListDocumentsDirectory();
+                Toast.toast(
+                  context,
+                  msg: 'CreateFile success',
+                );
+              } catch (e) {
+                Toast.toast(
+                  context,
+                  msg: 'e = ${e.toString()}',
+                );
+                print('e = ${e.toString()}');
+              }
             },
           ),
           RaisedButton(
@@ -135,10 +164,10 @@ class _HomePageState extends State<HomePage> {
     return ListView.separated(
       itemBuilder: (context, index) => ListTile(
         title: Text(
-          list[index].path +
-              (list[index].path == realtimeFilePath ? '  【正在实时的笔记】' : ''),
+          ptsList[index].path +
+              (ptsList[index].path == realtimeFilePath ? '  【正在实时的笔记】' : ''),
           style: TextStyle(
-            color: list[index].path == realtimeFilePath
+            color: ptsList[index].path == realtimeFilePath
                 ? Colors.red
                 : Colors.black,
           ),
@@ -146,30 +175,35 @@ class _HomePageState extends State<HomePage> {
         trailing: deleteFileSwich ? Icon(Icons.delete_forever) : null,
         onTap: () async {
           if (deleteFileSwich) {
-            File file = await File(list[index].path);
+            File file = await File(ptsList[index].path);
             await file.deleteSync(recursive: true);
             await _requestListDocumentsDirectory();
           } else {
+            if (!isInitMyscriptSuccess) {
+              Toast.toast(context, msg: 'Please initMyscript in "my-Settings"');
+              return;
+            }
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => IInkViewPage(list[index].path),
+                builder: (context) => IInkViewPage(ptsList[index].path),
               ),
             );
           }
         },
       ),
       separatorBuilder: (context, index) => Divider(),
-      itemCount: list.length,
+      itemCount: ptsList.length,
     );
   }
 
   _requestListDocumentsDirectory() async {
     var directory = await getApplicationDocumentsDirectory();
-    setState(() => list
+    setState(() => ptsList
       ..clear()
-      ..addAll(directory.listSync()));
-    print('list.length = ${list.length}');
-    for (var file in list) print('list.path = ${file.path}');
+      ..addAll(directory.listSync())
+      ..removeWhere((element) => !element.path.endsWith('.pts')));
+    print('list.length = ${ptsList.length}');
+    for (var file in ptsList) print('list.path = ${file.path}');
     print(
         'sRealtimeManager.realtimeFilePath = ${sRealtimeManager.fileStruct.filePath}');
     setState(() {
@@ -178,6 +212,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   _onNotepadStateEvent(NotepadStateEvent event) async {
-    await _requestListDocumentsDirectory();
+    setState(() => notepadState = event.state);
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
@@ -9,9 +10,8 @@ import 'package:myscript_iink/EditorView.dart';
 import 'package:myscript_iink/DeviceSize.dart';
 import 'package:myscript_iink/common.dart';
 import 'package:notepad_core/models.dart';
+import 'package:notepad_myscript_demo/util/NormalScaffold.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:notepad_myscript_demo/ConnectDevice/DeviceList.dart';
-import 'package:notepad_myscript_demo/ConnectDevice/NotepadDetailPage.dart';
 import 'package:notepad_myscript_demo/manager/NotepadManager.dart';
 import 'package:notepad_myscript_demo/manager/NotepadRealtime.dart';
 import 'package:notepad_myscript_demo/manager/NotepadUtil.dart';
@@ -36,15 +36,30 @@ class _IInkViewPageState extends State<IInkViewPage> {
 
   String penColor;
 
+  var notepadState = sNotepadManager.notepadState;
+
+  StreamSubscription<NotepadStateEvent> _notepadStateSubscription;
+
   @override
   void initState() {
     super.initState();
     initFunctionList();
+
+    _notepadStateSubscription =
+        sNotepadManager.notepadStateStream.listen(_onNotepadStateEvent);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _notepadStateSubscription.cancel();
+    _notepadStateSubscription = null;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return buildScaffold(
+      context,
       appBar: AppBar(
         title: Text('IInkView'),
         actions: <Widget>[
@@ -59,19 +74,6 @@ class _IInkViewPageState extends State<IInkViewPage> {
               );
             },
           ),
-          FlatButton(
-            child: Text('Notepad'),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) =>
-                      sNotepadManager.notepadState == NotepadState.Connected
-                          ? NotepadDetailPage(sNotepadManager.connectedDevice)
-                          : DeviceList(),
-                ),
-              );
-            },
-          ),
         ],
       ),
       body: Stack(
@@ -80,6 +82,7 @@ class _IInkViewPageState extends State<IInkViewPage> {
           buildMenu(),
         ],
       ),
+      notepadState: notepadState,
     );
   }
 
@@ -97,14 +100,12 @@ class _IInkViewPageState extends State<IInkViewPage> {
               alignment: Alignment.center,
               child: EditorView(
                 onCreated: (id) async {
-                  if (editorController == null) await initEditorController();
+                  await initEditorController();
                   await editorController.bindPlatformView(id);
                 },
                 onDisposed: (id) async {
-                  if (editorController != null) {
-                    await editorController.unbindPlatformView(id);
-                    await editorController.close();
-                  }
+                  await editorController?.unbindPlatformView(id);
+                  await closeEditorController();
                 },
               ),
             ),
@@ -132,18 +133,28 @@ class _IInkViewPageState extends State<IInkViewPage> {
           RaisedButton(
             child: Text('IntoRealtime'),
             onPressed: () async {
-              if (sNotepadManager.notepadState == NotepadState.Connected) {
-                if (sRealtimeManager.fileStruct.filePath != widget.filePath) {
-                  await sRealtimeManager.intoRealtime(FileStruct(
-                    widget.filePath,
-                    editorController,
-                  ));
-                  Toast.toast(context, msg: 'success');
-                }else {
-                  Toast.toast(context, msg: 'realtime note');
-                }
-              } else {
+              if (sNotepadManager.notepadState != NotepadState.Connected) {
                 Toast.toast(context, msg: 'Please connect device');
+                return;
+              }
+              if (sNotepadManager.deviceMode != NotepadMode.Sync) {
+                Toast.toast(context, msg: 'Please setMode:SYNC in Notepad');
+                return;
+              }
+              if (sRealtimeManager.fileStruct.filePath == widget.filePath) {
+                Toast.toast(context, msg: '已经是实时笔记了，不需要再次设置');
+                return;
+              }
+
+              try {
+                await sRealtimeManager.intoRealtime(FileStruct(
+                  widget.filePath,
+                  editorController,
+                ));
+                Toast.toast(context, msg: 'IntoRealtime success');
+              } catch (e) {
+                Toast.toast(context,
+                    msg: 'IntoRealtime erro = ${e.toString()}');
               }
             },
           ),
@@ -197,7 +208,7 @@ class _IInkViewPageState extends State<IInkViewPage> {
       FunctionItem('setPenStyle', callBack: setPenStyle),
       FunctionItem('getPenStyle', callBack: getPenStyle),
       FunctionItem('exportText', callBack: exportText),
-      FunctionItem('exportPNG', callBack: exportJPG),
+      FunctionItem('exportPNG', callBack: exportPNG),
       FunctionItem('exportJPG', callBack: exportJPG),
       FunctionItem('exportJIIX', callBack: exportJIIX),
       FunctionItem('exportJIIXAndParse', callBack: exportJIIXAndParse),
@@ -220,29 +231,13 @@ class _IInkViewPageState extends State<IInkViewPage> {
   setPenStyle() async {
     var s = await editorController.getPenStyle();
     var currentPenStyle = PenStyle.parse(s);
-    var list = [
-      '0',
-      '1',
-      '2',
-      '3',
-      '4',
-      '5',
-      '6',
-      '7',
-      '8',
-      '9',
-      '10',
-      'a',
-      'b',
-      'c',
-      'd',
-      'e',
-      'f'
-    ];
+    var colorStr = '0123456789abcdef';
     var color = '#';
 
-    for (int i = 0; i < 6; i++)
-      color += list[Random().nextInt(list.length).toInt()];
+    for (int i = 0; i < 6; i++) {
+      var index = Random().nextInt(colorStr.length).toInt();
+      color += colorStr.substring(index,index+1);
+    }
 
     var penStyle = currentPenStyle.clone(
       color: color, //  '#00ff38'
@@ -316,20 +311,26 @@ class _IInkViewPageState extends State<IInkViewPage> {
   Future exportJPG() async {
     final skinByteData = await rootBundle.load('images/noteskin.png');
     final skinBytes = skinByteData.buffer.asUint8List();
-    var pngBytes = await editorController.exportJPG(skinBytes);
+    var jpgBytes = await editorController.exportJPG(skinBytes);
 
-    Toast.toast(context,
-        img: Image.memory(pngBytes),
-        msg: 'exportJPG jpg.length = ${pngBytes.length}');
+    Toast.toast(
+      context,
+      bgColor: Colors.red,
+      img: Image.memory(jpgBytes),
+      msg: 'exportJPG jpg.length = ${jpgBytes.length}',
+    );
   }
 
   Future exportPNG() async {
     final skinByteData = await rootBundle.load('images/noteskin.png');
     final skinBytes = skinByteData.buffer.asUint8List();
-    var pngBytes = await editorController.exportPNG(skinBytes);
-    Toast.toast(context,
-        img: Image.memory(pngBytes),
-        msg: 'exportPNG png.length = ${pngBytes.length}');
+    var pngBytes = await editorController.exportPNG(null);
+    Toast.toast(
+      context,
+      bgColor: Colors.red,
+      img: Image.memory(pngBytes),
+      msg: 'exportPNG png.length = ${pngBytes.length}',
+    );
   }
 
   handleSyncPointerEvent() async {
@@ -434,13 +435,27 @@ class _IInkViewPageState extends State<IInkViewPage> {
     return int.parse(hexColor, radix: 16);
   }
 
-  //  init
   initEditorController() async {
+    if (sRealtimeManager.fileStruct.filePath == widget.filePath) {
+      setState(() => editorController = sRealtimeManager.fileStruct.editorController);
+      return;
+    }
+
     var newController = await EditorController.create(widget.filePath);
     setState(() => editorController = newController);
 
     (await File(widget.filePath).exists())
         ? await editorController.openPackage(widget.filePath)
         : await editorController.createPackage(widget.filePath);
+  }
+
+  closeEditorController() async {
+    if (sRealtimeManager.fileStruct.filePath != widget.filePath) {
+      await editorController.close();
+    }
+  }
+
+  _onNotepadStateEvent(NotepadStateEvent event) async {
+    if (mounted) setState(() => notepadState = event.state);
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -5,7 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:notepad_core/notepad_core.dart';
 import 'package:http/http.dart' as http;
 import 'package:notepad_myscript_demo/manager/NotepadManager.dart';
+import 'package:notepad_myscript_demo/manager/NotepadUtil.dart';
 import 'package:notepad_myscript_demo/util/FunctionListWidget.dart';
+import 'package:notepad_myscript_demo/util/Toast.dart';
 
 class NotepadDetailPage extends StatefulWidget {
   NotepadScanResult scanResult;
@@ -79,7 +82,7 @@ class _NotepadDetailPageState extends State<NotepadDetailPage> {
         FunctionItem('connect', callBack: connect),
         FunctionItem('disconnect', callBack: disconnect),
         FunctionItem('setMode：COMMON', callBack: setCommonMode),
-        FunctionItem('setMode：SYNC', callBack: setSyncMode),
+        FunctionItem('setMode：SYNC(实时书写时)', callBack: setSyncMode),
         FunctionItem('claimAuth', callBack: claimAuth),
         FunctionItem('disclaimAuth', callBack: disClaimAuth),
         FunctionItem('getDeviceSize', callBack: getDeviceSize),

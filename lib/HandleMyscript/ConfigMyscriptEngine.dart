@@ -4,6 +4,8 @@ import 'package:myscript_iink/myscript_iink.dart';
 import 'package:notepad_myscript_demo/util/FunctionListWidget.dart';
 import 'package:notepad_myscript_demo/util/Toast.dart';
 
+var isInitMyscriptSuccess = false;
+
 class ConfigMyscriptEngine extends StatefulWidget {
   @override
   State<StatefulWidget> createState() => _ConfigMyscriptEngineState();
@@ -19,14 +21,34 @@ class _ConfigMyscriptEngineState extends State<ConfigMyscriptEngine> {
           'initMyscript',
           content: 'initMyscript before use myscript',
           callBack: () async {
-            await MyscriptIink.initMyscript();
-            Toast.toast(context, msg: 'initMyscript success');
+            if (isInitMyscriptSuccess) {
+              Toast.toast(context, msg: 'You had init-Myscript');
+              return;
+            }
+            try {
+              Toast.toast(context, msg: 'initMyscript success');
+              var startDate = DateTime.now().millisecondsSinceEpoch;
+              await MyscriptIink.initMyscript();
+              var endDate = DateTime.now().millisecondsSinceEpoch;
+              isInitMyscriptSuccess = true;
+              Toast.toast(context,
+                  msg: 'initMyscript success, 用时${endDate - startDate}');
+            } catch (e) {
+              Toast.toast(context, msg: 'initMyscript faile, ${e.toString()}');
+            }
           },
         ),
         FunctionItem(
           'setEngineLanguage: Current-Language zh-CN',
           content: 'Config MyScript Engine before create file(pts)',
           callBack: () async {
+            if (isInitMyscriptSuccess) {
+              Toast.toast(
+                context,
+                msg: 'Please initMyscript in "my-Settings"',
+              );
+              return;
+            }
             await MyscriptIink.setEngineConfiguration_Language('zh_CN');
             Toast.toast(context,
                 msg: 'setEngineConfiguration_Language success');
