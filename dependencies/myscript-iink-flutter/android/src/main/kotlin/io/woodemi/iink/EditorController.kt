@@ -308,7 +308,7 @@ class EditorController(messenger: BinaryMessenger, channelName: String) : Method
 }
 
 private fun Editor.createImage(width: Int, height: Int, background: ByteArray?): ByteArray {
-    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     val sysCanvas = android.graphics.Canvas(bitmap)
     background?.let {
         var oldBitmap = BitmapFactory.decodeByteArray(it, 0, it.size)
