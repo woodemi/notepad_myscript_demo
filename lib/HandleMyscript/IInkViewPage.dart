@@ -317,7 +317,7 @@ class _IInkViewPageState extends State<IInkViewPage> {
       context,
       bgColor: Colors.red,
       img: Image.memory(jpgBytes),
-      msg: 'exportJPG jpg.length = ${jpgBytes.length}',
+      msg: '红色为屏幕背景色\nexportJPG jpg.length = ${jpgBytes.length}',
     );
   }
 
@@ -329,7 +329,7 @@ class _IInkViewPageState extends State<IInkViewPage> {
       context,
       bgColor: Colors.red,
       img: Image.memory(pngBytes),
-      msg: 'exportPNG png.length = ${pngBytes.length}',
+      msg: '红色为屏幕背景色\nexportPNG png.length = ${pngBytes.length}',
     );
   }
 
