@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:notepad_core/notepad_core.dart';
-import 'package:notepad_myscript_demo/manager/NotepadRealtime.dart';
 import 'package:notepad_myscript_demo/manager/NotepadUtil.dart';
 
 final sNotepadManager = NotepadManager._internal();
@@ -126,13 +125,10 @@ class NotepadManager implements NotepadClientCallback {
         } catch (e) {
           print('Connection config error: $e');
         }
-        await sRealtimeManager.intoRealtime();
-
         _notepadState = NotepadState.Connected;
         await stopScan();
         break;
       case NotepadConnectionState.disconnected:
-        await sRealtimeManager.finishRealtime();
         _notepadState = NotepadState.Disconnected;
         break;
       case NotepadConnectionState.connecting:

@@ -3,6 +3,8 @@ package io.woodemi.iink
 import android.content.Context
 import android.graphics.Typeface
 import android.util.DisplayMetrics
+import android.os.Handler
+import android.os.Looper
 import com.myscript.iink.Engine
 import com.myscript.iink.uireferenceimplementation.FontMetricsProvider
 import com.myscript.iink.uireferenceimplementation.FontUtils
@@ -14,6 +16,8 @@ import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry.Registrar
 
 var iink_controllers: MutableMap<String, EditorController> = mutableMapOf()
+
+private val mainThreadHandler = Handler(Looper.getMainLooper())
 
 class MyscriptIinkPlugin: MethodCallHandler {
     companion object {
@@ -58,16 +62,18 @@ class MyscriptIinkPlugin: MethodCallHandler {
     override fun onMethodCall(call: MethodCall, result: Result) {
         when (call.method) {
             "initMyscript" -> {
-                engine = Engine.create(iink_bytes)
-                val confDir = "zip://${iink_context.packageCodePath}!/assets/recognition-assets/conf"
-                engine.configuration.setStringArray("configuration-manager.search-path", arrayOf(confDir))
-                engine.configuration.setBoolean("text.guides.enable", false)
-                engine.configuration.setString("content-package.temp-folder", "${iink_context.filesDir.path}/tmp")
-                engine.configuration.setBoolean("gesture.enable", false)
-                typefaceMap = FontUtils.loadFontsFromAssets(iink_context.assets)
-                fontMetricsProvider = FontMetricsProvider(iink_context.resources.displayMetrics, typefaceMap)
-                displayMetrics = iink_context.resources.displayMetrics
-                result.success(null)
+                Thread {
+                    engine = Engine.create(iink_bytes)
+                    val confDir = "zip://${iink_context.packageCodePath}!/assets/recognition-assets/conf"
+                    engine.configuration.setStringArray("configuration-manager.search-path", arrayOf(confDir))
+                    engine.configuration.setBoolean("text.guides.enable", false)
+                    engine.configuration.setString("content-package.temp-folder", "${iink_context.filesDir.path}/tmp")
+                    engine.configuration.setBoolean("gesture.enable", false)
+                    typefaceMap = FontUtils.loadFontsFromAssets(iink_context.assets)
+                    fontMetricsProvider = FontMetricsProvider(iink_context.resources.displayMetrics, typefaceMap)
+                    displayMetrics = iink_context.resources.displayMetrics
+                    mainThreadHandler.post { result.success(null) }
+                }.start()
             }
             "createEditorControllerChannel" -> {
                 val channelName = call.argument<String>("channelName")!!

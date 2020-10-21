@@ -223,19 +223,19 @@ class EditorController {
     return await _methodChannel.invokeMethod('clear');
   }
 
-  Future<bool>canUndo() async {
+  Future<bool> canUndo() async {
     return await _methodChannel.invokeMethod('canUndo');
   }
 
-  Future<bool>undo() async {
+  Future<bool> undo() async {
     return await _methodChannel.invokeMethod('undo');
   }
 
-  Future<bool>canRedo() async {
+  Future<bool> canRedo() async {
     return await _methodChannel.invokeMethod('canRedo');
   }
 
-  Future<bool>redo() async {
+  Future<bool> redo() async {
     return await _methodChannel.invokeMethod('redo');
   }
 

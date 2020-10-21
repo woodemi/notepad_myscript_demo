@@ -86,13 +86,16 @@ class NotepadStateEvent {
 }
 
 IINKPointerEventFlutter handlePointerEvent(
-  IINKPointerEventTypeFlutter _preEventType,
+  IINKPointerEventFlutter prePointerEventFlutter,
   NotePenPointer pointer,
 ) {
   var x = pointer.x.toDouble();
   var y = pointer.y.toDouble();
   var p = pointer.p.toDouble();
   var t = pointer.t.toInt();
+
+  var _preEventType = prePointerEventFlutter.eventType;
+  var _pointType = prePointerEventFlutter.pointerType;
 
   //  第一笔的第一点压感需大于0
   if (_preEventType == IINKPointerEventTypeFlutter.up && p == 0) return null;
@@ -145,7 +148,7 @@ IINKPointerEventFlutter handlePointerEvent(
     y: y * viewScale,
     t: t,
     f: p / 512.0,
-    pointerType: IINKPointerTypeFlutter.pen,
+    pointerType: _pointType,
     pointerId: -1,
   );
 }
@@ -154,9 +157,9 @@ List<IINKPointerEventFlutter> formatPointerEvents(
     List<NotePenPointer> pointers) {
   var pointerEvents = List<IINKPointerEventFlutter>();
 
-  IINKPointerEventFlutter _prePointer = IINKPointerEventFlutter.shared;
+  var _prePointer = IINKPointerEventFlutter.shared;
   for (var pointer in pointers) {
-    var pe = handlePointerEvent(_prePointer.eventType, pointer);
+    var pe = handlePointerEvent(_prePointer, pointer);
     if (pe != null) {
       pointerEvents.add(pe);
       _prePointer = pe;

@@ -69,9 +69,9 @@ class Toast {
     //2秒后 到底消失不消失
     if (DateTime.now().difference(_startedTime).inMilliseconds >= _showTime) {
       _showing = false;
-      _overlayEntry.markNeedsBuild();
+      _overlayEntry?.markNeedsBuild();
       await Future.delayed(Duration(milliseconds: 400));
-      _overlayEntry.remove();
+      _overlayEntry?.remove();
       _overlayEntry = null;
     }
   }

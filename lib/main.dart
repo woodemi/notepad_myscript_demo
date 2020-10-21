@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:myscript_iink/EditorController.dart';
-import 'package:notepad_myscript_demo/util/NormalScaffold.dart';
+import 'package:notepad_myscript_demo/util/widgets.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:notepad_myscript_demo/HandleMyscript/ConfigMyscriptEngine.dart';
 import 'package:notepad_myscript_demo/HandleMyscript/IInkViewPage.dart';

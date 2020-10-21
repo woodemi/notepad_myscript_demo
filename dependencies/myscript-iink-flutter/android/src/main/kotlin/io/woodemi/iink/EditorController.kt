@@ -144,11 +144,7 @@ class EditorController(messenger: BinaryMessenger, channelName: String) : Method
                 mainThreadHandler.post { result.success(null) }
             }
             "canUndo" -> {
-                mainThreadHandler.post {
-                    if (!this.editor.isClosed) {
-                        this.editor.canUndo()
-                    }
-                }
+                mainThreadHandler.post { result.success(this.editor.canUndo()) }
             }
             "undo" -> {
                 mainThreadHandler.post {
@@ -156,23 +152,21 @@ class EditorController(messenger: BinaryMessenger, channelName: String) : Method
                         if (this.editor.canUndo()) {
                             this.editor.undo()
                         }
-                        result.success(this.editor.canUndo())
                     }
+                    result.success(null)
                 }
             }
             "canRedo" -> {
-                mainThreadHandler.post {
-                    if (!this.editor.isClosed) {
-                        this.editor.canRedo()
-                    }
-                }
+                mainThreadHandler.post { result.success(this.editor.canRedo()) }
             }
             "redo" -> {
-                if (!this.editor.isClosed) {
-                    if (this.editor.canRedo()) {
-                        this.editor.redo()
+                mainThreadHandler.post {
+                    if (!this.editor.isClosed) {
+                        if (this.editor.canRedo()) {
+                            this.editor.redo()
+                        }
                     }
-                    result.success(this.editor.canRedo())
+                    result.success(null)
                 }
             }
             "waitForIdle" -> {

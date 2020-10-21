@@ -239,8 +239,8 @@ class Word {
   var strokes = List<Stroke>();
 
   Word.fromMap(Map map) {
-    var items = (map['items'] as List);
-//    var items = (map['strokes'] as List);
+//    var items = (map['items'] as List); //  1.4.1
+    var items = (map['strokes'] as List); //  1.2.2
     if (items == null) return;
     strokes = items.map((m) => Stroke.fromMap(m)).toList();
   }

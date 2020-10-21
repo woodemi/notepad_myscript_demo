@@ -2,8 +2,8 @@ PODS:
   - Flutter (1.0.0)
   - myscript_iink (0.0.1):
     - Flutter
-    - MyScriptInteractiveInk-Runtime (= 1.4.1)
-  - MyScriptInteractiveInk-Runtime (1.4.1)
+    - MyScriptInteractiveInk-Runtime (= 1.2.2)
+  - MyScriptInteractiveInk-Runtime (1.2.2)
   - notepad_core (0.0.1):
     - Flutter
   - notepad_core_macos (0.0.1):
@@ -56,8 +56,8 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Flutter: 0e3d915762c693b495b44d77113d4970485de6ec
-  myscript_iink: d09d62812510fa02efafa77ed30240714e9442a0
-  MyScriptInteractiveInk-Runtime: d17cf2ec1fc3a0c1383cbfa4f173b07d00573ea3
+  myscript_iink: eb194716ee1dae8d53eacaa0091406d041d0aeb1
+  MyScriptInteractiveInk-Runtime: a817229221180ece1b8d1253fdef98263b34a0ce
   notepad_core: c1035346a4acc276e4d6c6e3d976dd38e4df3f1a
   notepad_core_macos: d0ba61b267175fd988dd3b798331cebddde0d03f
   notepad_core_web: 3cf58882a33b51cc49f5e3061b6db3b54dc06670

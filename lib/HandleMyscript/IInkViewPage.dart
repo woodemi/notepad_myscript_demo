@@ -10,7 +10,11 @@ import 'package:myscript_iink/EditorView.dart';
 import 'package:myscript_iink/DeviceSize.dart';
 import 'package:myscript_iink/common.dart';
 import 'package:notepad_core/models.dart';
-import 'package:notepad_myscript_demo/util/NormalScaffold.dart';
+import 'package:notepad_myscript_demo/ConnectDevice/DeviceList.dart';
+import 'package:notepad_myscript_demo/ConnectDevice/NotepadDetailPage.dart';
+import 'package:notepad_myscript_demo/HandleMyscript/NoteReplayPage.dart';
+import 'package:notepad_myscript_demo/util/widgets.dart';
+import 'package:notepad_myscript_demo/util/colors.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:notepad_myscript_demo/manager/NotepadManager.dart';
 import 'package:notepad_myscript_demo/manager/NotepadRealtime.dart';
@@ -32,13 +36,47 @@ class _IInkViewPageState extends State<IInkViewPage> {
   //  myscript的方法集
   var myscriptList = List<FunctionItem>();
 
-  EditorController editorController;
+  EditorController _editorController;
 
   String penColor;
+  PenStyle penStyle;
+
+  var _pointerType = IINKPointerTypeFlutter.pen;
+
+  setIsEraser(bool value) async {
+    setState(() {
+      _pointerType =
+          value ? IINKPointerTypeFlutter.eraser : IINKPointerTypeFlutter.pen;
+    });
+    if (sRealtimeManager.fileStruct.filePath == widget.filePath) {
+      await sRealtimeManager.setPointerType(_pointerType);
+    }
+  }
 
   var notepadState = sNotepadManager.notepadState;
 
   StreamSubscription<NotepadStateEvent> _notepadStateSubscription;
+
+  //  是否可以撤销/前进
+  StreamSubscription<bool> _firstStrokeSubscription;
+
+  var canUndo = false;
+  var canRedo = false;
+
+  firstStroke(bool value) async {
+    if (value) await resetUndoAndRedo();
+  }
+
+  resetUndoAndRedo() async {
+    var _canUndo = await _editorController.canUndo();
+    var _canRedo = await _editorController.canRedo();
+    print('_canUndo = $_canUndo');
+    print('_canRedo = $_canRedo');
+    setState(() {
+      canUndo = _canUndo;
+      canRedo = _canRedo;
+    });
+  }
 
   @override
   void initState() {
@@ -47,6 +85,8 @@ class _IInkViewPageState extends State<IInkViewPage> {
 
     _notepadStateSubscription =
         sNotepadManager.notepadStateStream.listen(_onNotepadStateEvent);
+    _firstStrokeSubscription =
+        sRealtimeManager.firstStrokeStreamController.listen(firstStroke);
   }
 
   @override
@@ -54,14 +94,47 @@ class _IInkViewPageState extends State<IInkViewPage> {
     super.dispose();
     _notepadStateSubscription.cancel();
     _notepadStateSubscription = null;
+    _firstStrokeSubscription.cancel();
+    _firstStrokeSubscription = null;
   }
 
+  initEditorController() async {
+    print('widget.filePath = ${widget.filePath}');
+    if (sRealtimeManager.fileStruct.filePath == widget.filePath) {
+      _editorController = sRealtimeManager.fileStruct.editorController;
+      _pointerType = sRealtimeManager.pointerType;
+    } else {
+      _editorController = await EditorController.create(widget.filePath);
+      (await File(widget.filePath).exists())
+          ? await _editorController.openPackage(widget.filePath)
+          : await _editorController.createPackage(widget.filePath);
+
+      var value = await _editorController.getPenStyle();
+      penStyle = PenStyle.parse(value);
+      setState(() => penColor = penStyle.color);
+    }
+  }
+
+  closeEditorController() async {
+    if (widget.filePath != sRealtimeManager.fileStruct.filePath) {
+      await _editorController.close();
+    }
+  }
+
+  _onNotepadStateEvent(NotepadStateEvent event) async {
+    if (mounted) setState(() => notepadState = event.state);
+  }
+
+  /*-----------------------------------------------------------------------
+  *
+  * Widgets
+  *
+  * -----------------------------------------------------------------------*/
   @override
   Widget build(BuildContext context) {
     return buildScaffold(
       context,
       appBar: AppBar(
-        title: Text('IInkView'),
         actions: <Widget>[
           FlatButton(
             child: Text('Myscript'),
@@ -74,15 +147,46 @@ class _IInkViewPageState extends State<IInkViewPage> {
               );
             },
           ),
+          FlatButton(
+            child: Text(
+              notepadState == NotepadState.Connected ? '已连接' : '未连接',
+              style: TextStyle(
+                color: Colors.white,
+              ),
+            ),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => notepadState == NotepadState.Connected
+                      ? NotepadDetailPage(sNotepadManager.connectedDevice)
+                      : DeviceList(),
+                ),
+              );
+            },
+          ),
         ],
       ),
       body: Stack(
         children: <Widget>[
           buildContent(),
-          buildMenu(),
+          Align(
+            alignment: Alignment.topCenter,
+            child: Container(
+              height: 60,
+              color: Colors.white,
+              child: buildTopMenus(),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              height: 60,
+              color: Colors.white,
+              child: buildBottomMenus(),
+            ),
+          ),
         ],
       ),
-      notepadState: notepadState,
     );
   }
 
@@ -100,11 +204,16 @@ class _IInkViewPageState extends State<IInkViewPage> {
               alignment: Alignment.center,
               child: EditorView(
                 onCreated: (id) async {
+                  Toast.toast(
+                    context,
+                    msg: '加载中（需要延迟一会再去绑定view，否则可能加载UI失败）',
+                  );
+                  await Future.delayed(Duration(milliseconds: 1000), () {});
                   await initEditorController();
-                  await editorController.bindPlatformView(id);
+                  await _editorController.bindPlatformView(id);
                 },
                 onDisposed: (id) async {
-                  await editorController?.unbindPlatformView(id);
+                  await _editorController?.unbindPlatformView(id);
                   await closeEditorController();
                 },
               ),
@@ -124,77 +233,130 @@ class _IInkViewPageState extends State<IInkViewPage> {
     );
   }
 
-  buildMenu() {
-    return Container(
-      height: 60,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: <Widget>[
-          RaisedButton(
-            child: Text('IntoRealtime'),
-            onPressed: () async {
-              if (sNotepadManager.notepadState != NotepadState.Connected) {
-                Toast.toast(context, msg: 'Please connect device');
-                return;
-              }
-              if (sNotepadManager.deviceMode != NotepadMode.Sync) {
-                Toast.toast(context, msg: 'Please setMode:SYNC in Notepad');
-                return;
-              }
-              if (sRealtimeManager.fileStruct.filePath == widget.filePath) {
-                Toast.toast(context, msg: '已经是实时笔记了，不需要再次设置');
-                return;
-              }
+  buildTopMenus() {
+    return menus(
+      titles: [
+        'IntoRealtime',
+        'SyncMemo',
+      ],
+      functions: [
+        () async {
+          if (sNotepadManager.notepadState != NotepadState.Connected) {
+            Toast.toast(context, msg: 'Please connect device');
+            return;
+          }
+          if (sNotepadManager.deviceMode != NotepadMode.Sync) {
+            Toast.toast(context, msg: 'Please setMode:SYNC in Notepad');
+            return;
+          }
+          if (sRealtimeManager.fileStruct.filePath == widget.filePath) {
+            Toast.toast(context, msg: '已经是实时笔记了，不需要再次设置');
+            return;
+          }
 
-              try {
-                await sRealtimeManager.intoRealtime(FileStruct(
-                  widget.filePath,
-                  editorController,
-                ));
-                Toast.toast(context, msg: 'IntoRealtime success');
-              } catch (e) {
-                Toast.toast(context,
-                    msg: 'IntoRealtime erro = ${e.toString()}');
-              }
-            },
-          ),
-          RaisedButton(
-            child: Text('SyncMemo'),
-            onPressed: () async {
-              //  连接设备
-              if (sNotepadManager.notepadState != NotepadState.Connected) {
-                Toast.toast(context, msg: '请先连接设备');
-                return;
-              }
+          try {
+            await sRealtimeManager.intoRealtime(FileStruct(
+              widget.filePath,
+              _editorController,
+            ));
+            Toast.toast(context, msg: 'IntoRealtime success');
+          } catch (e) {
+            Toast.toast(context, msg: 'IntoRealtime erro = ${e.toString()}');
+          }
+        },
+        () async {
+          print('橡皮擦');
+          //  连接设备
+          if (sNotepadManager.notepadState != NotepadState.Connected) {
+            Toast.toast(context, msg: '请先连接设备');
+            return;
+          }
 
-              //  检测离线笔记的数量
-              var m = await sNotepadManager.getMemoSummary();
-              if (m.memoCount == 0) {
-                Toast.toast(context, msg: '请在COMMON模式下书写离线笔记');
-                return;
-              }
+          //  检测离线笔记的数量
+          var m = await sNotepadManager.getMemoSummary();
+          if (m.memoCount == 0) {
+            Toast.toast(context, msg: '请在COMMON模式下书写离线笔记');
+            return;
+          }
 
-              //  先清空当前的笔记
-              await editorController.clear();
+          //  先清空当前的笔记
+          await _editorController.clear();
 
-              //  开始导入离线笔记(只导入栈顶的那个笔记)
-              var memoData = await sNotepadManager.importStackTopMemo();
+          //  开始导入离线笔记(只导入栈顶的那个笔记)
+          var memoData = await sNotepadManager.importStackTopMemo();
 
-              //  格式化点位信息
-              var pointerEvents = formatPointerEvents(memoData.pointers);
+          //  格式化点位信息
+          var pointerEvents = formatPointerEvents(memoData.pointers);
 
-              //  交给myscript
-              await editorController.syncPointerEvents(pointerEvents);
+          //  交给myscript
+          await _editorController.syncPointerEvents(pointerEvents);
 
-              //  删除设备中栈顶的笔记
-              await sNotepadManager.deleteMemo();
+          //  删除设备中栈顶的笔记
+          await sNotepadManager.deleteMemo();
 
-              //  立即进行识别
-              await exportText();
-            },
-          ),
-        ],
-      ),
+          //  立即进行识别
+          await exportText();
+        },
+      ],
+    );
+  }
+
+  buildBottomMenus() {
+    return menus(
+      titles: [
+        '回放',
+        '橡皮擦',
+        '后退',
+        '前进',
+      ],
+      opacitys: [
+        1.0,
+        _pointerType == IINKPointerTypeFlutter.eraser ? 1 : 0.5,
+        canUndo ? 1 : 0.5,
+        canRedo ? 1 : 0.5,
+      ],
+      functions: [
+        () async {
+          print('回放');
+          pushReplay(_editorController, penStyle, context);
+        },
+        () async {
+          print('橡皮擦');
+          if (sRealtimeManager.fileStruct.filePath != widget.filePath) {
+            Toast.toast(context, msg: '请将当前笔记设置为实时笔记，点击IntoRealtime');
+            return;
+          }
+          var isE = _pointerType == IINKPointerTypeFlutter.eraser;
+          print('isE = $isE');
+          await setIsEraser(!isE);
+        },
+        () async {
+          print('撤销');
+          if (!canUndo) {
+            Toast.toast(
+              context,
+              msg: 'canRedo = ${canUndo}',
+            );
+            await resetUndoAndRedo();
+            return;
+          }
+          await _editorController.undo();
+          await resetUndoAndRedo();
+        },
+        () async {
+          print('前进');
+          if (!canRedo) {
+            Toast.toast(
+              context,
+              msg: 'canRedo = ${canRedo}',
+            );
+            await resetUndoAndRedo();
+            return;
+          }
+          await _editorController.redo();
+          await resetUndoAndRedo();
+        },
+      ],
     );
   }
 
@@ -229,52 +391,49 @@ class _IInkViewPageState extends State<IInkViewPage> {
   }
 
   setPenStyle() async {
-    var s = await editorController.getPenStyle();
-    var currentPenStyle = PenStyle.parse(s);
     var colorStr = '0123456789abcdef';
     var color = '#';
-
     for (int i = 0; i < 6; i++) {
       var index = Random().nextInt(colorStr.length).toInt();
-      color += colorStr.substring(index,index+1);
+      color += colorStr.substring(index, index + 1);
     }
 
-    var penStyle = currentPenStyle.clone(
+    var newPenStyle = penStyle.clone(
       color: color, //  '#00ff38'
       myscriptPenWidth: 2.5,
       myscriptPenBrush: MyscriptPenBrush(MyscriptPenBrushType.FountainPen),
     );
-    await editorController.setPenStyle(penStyle.fromat());
-    var value = await editorController.getPenStyle();
-    currentPenStyle = PenStyle.parse(value);
-    setState(() => penColor = currentPenStyle.color);
+    await _editorController.setPenStyle(newPenStyle.fromat());
+    var value = await _editorController.getPenStyle();
+    penStyle = PenStyle.parse(value);
+    setState(() => penColor = penStyle.color);
     Toast.toast(
       context,
-      msg: 'setPenStyle:\n ${currentPenStyle.fromat()}',
+      msg: 'setPenStyle:\n ${penStyle.fromat()}',
     );
   }
 
   getPenStyle() async {
-    var value = await editorController.getPenStyle();
+    var value = await _editorController.getPenStyle();
     Toast.toast(
       context,
       msg: 'getPenStyle:\n ${value}',
     );
   }
 
-  Future exportText() async {
-    var covert = await editorController.exportText();
+  exportText() async {
+    var covert = await _editorController.exportText();
     Toast.toast(context, msg: 'exportText = $covert');
   }
 
-  Future clear() async {
-    await editorController.clear();
+  clear() async {
+    await _editorController.clear();
     Toast.toast(context, msg: "clear");
   }
 
-  Future exportGIF() async {
-    var jiix = await editorController.exportJIIX();
-    var pointerEvents = await editorController.parseJIIX(jiix);
+  exportGIF() async {
+    var jiix = await _editorController.exportJIIX();
+    var pointerEvents = await _editorController.parseJIIX(jiix);
     final skinByteData = await rootBundle.load('images/noteskin.png');
     final skinBytes = skinByteData.buffer.asUint8List();
 
@@ -297,21 +456,21 @@ class _IInkViewPageState extends State<IInkViewPage> {
     );
   }
 
-  Future exportJIIXAndParse() async {
-    var jiix = await editorController.exportJIIX();
-    var list = await editorController.parseJIIX(jiix);
+  exportJIIXAndParse() async {
+    var jiix = await _editorController.exportJIIX();
+    var list = await _editorController.parseJIIX(jiix);
     Toast.toast(context, msg: "exportJIIX list.length = ${list.length}");
   }
 
-  Future exportJIIX() async {
-    var jiix = await editorController.exportJIIX();
+  exportJIIX() async {
+    var jiix = await _editorController.exportJIIX();
     Toast.toast(context, msg: "exportJIIX list.length = ${jiix}");
   }
 
-  Future exportJPG() async {
+  exportJPG() async {
     final skinByteData = await rootBundle.load('images/noteskin.png');
     final skinBytes = skinByteData.buffer.asUint8List();
-    var jpgBytes = await editorController.exportJPG(skinBytes);
+    var jpgBytes = await _editorController.exportJPG(skinBytes);
 
     Toast.toast(
       context,
@@ -321,10 +480,10 @@ class _IInkViewPageState extends State<IInkViewPage> {
     );
   }
 
-  Future exportPNG() async {
+  exportPNG() async {
     final skinByteData = await rootBundle.load('images/noteskin.png');
     final skinBytes = skinByteData.buffer.asUint8List();
-    var pngBytes = await editorController.exportPNG(null);
+    var pngBytes = await _editorController.exportPNG(null);
     Toast.toast(
       context,
       bgColor: Colors.red,
@@ -334,7 +493,8 @@ class _IInkViewPageState extends State<IInkViewPage> {
   }
 
   handleSyncPointerEvent() async {
-    print('===================================');
+    print('===================================handleSyncPointerEvent');
+    if (_editorController == null) return;
     final pointers = 200; //  测试数量大于5000时，会不会切割
     var startTime = DateTime.now().millisecondsSinceEpoch;
     for (var i = 0; i < pointers; i++) {
@@ -352,12 +512,13 @@ class _IInkViewPageState extends State<IInkViewPage> {
       );
       print(
           '************ _handleSyncPointerEvent type = ${IINKPointerEventTypeFlutterDescription(eventType)} i = ${i}');
-      await editorController.syncPointerEvent(pe);
+      await _editorController.syncPointerEvent(pe);
+      if (eventType == IINKPointerEventTypeFlutter.up) await firstStroke(true);
     }
   }
 
   handleSyncPointerEvents() async {
-    if (editorController == null) return;
+    if (_editorController == null) return;
     final pointers = 200; //  测试数量大于5000时，会不会切割
     var list = List<IINKPointerEventFlutter>();
     var startTime = DateTime.now().millisecondsSinceEpoch;
@@ -376,86 +537,71 @@ class _IInkViewPageState extends State<IInkViewPage> {
       );
       list.add(pe);
     }
-    await editorController.syncPointerEvents(list);
+    await _editorController.syncPointerEvents(list);
+    await firstStroke(true);
   }
 
   mockdata() async {
+    print('===================================mockdata');
+    if (_editorController == null) return;
+
     //  init
-    var _preEventType = IINKPointerEventTypeFlutter.up;
+    var _prePointer = IINKPointerEventFlutter.shared;
     var x = 3000.toInt();
     var y = 3000.toInt();
     var offset = 100.toInt();
 
     //  第一笔：横（50个点）
+    print('第一笔：横（50个点）');
     for (var i = 0; i < 50; i++) {
       var p = i == 49 ? 0 : (Random().nextInt(400) + 10);
       var pointer = NotePenPointer(x + offset * i, y, -1, p);
       print(pointer.toMap());
-      var pe = handlePointerEvent(_preEventType, pointer);
-      await editorController.syncPointerEvent(pe);
-
-      _preEventType = pe.eventType;
+      var pe = handlePointerEvent(_prePointer, pointer);
+      if (pe == null) continue;
+      _prePointer = pe;
+      await _editorController.syncPointerEvent(_prePointer);
+      if (_prePointer.eventType == IINKPointerEventTypeFlutter.up)
+        await firstStroke(true);
     }
 
     //  第二笔：横（50个点）
+    print('第二笔：横（50个点）');
     for (var i = 0; i < 50; i++) {
       var p = i == 49 ? 0 : (Random().nextInt(400) + 10);
       var pointer = NotePenPointer(x + offset * i, y + 25 * offset, -1, p);
-      var pe = handlePointerEvent(_preEventType, pointer);
-      await editorController.syncPointerEvent(pe);
-
-      _preEventType = pe.eventType;
+      var pe = handlePointerEvent(_prePointer, pointer);
+      if (pe == null) continue;
+      _prePointer = pe;
+      await _editorController.syncPointerEvent(_prePointer);
+      if (_prePointer.eventType == IINKPointerEventTypeFlutter.up)
+        await firstStroke(true);
     }
 
     //  第三笔：竖（50个点）
+    print('第三笔：竖（50个点）');
     for (var i = 0; i < 50; i++) {
       var p = i == 49 ? 0 : (Random().nextInt(400) + 10);
       var pointer = NotePenPointer(x + 25 * offset, y + offset * i, -1, p);
-      var pe = handlePointerEvent(_preEventType, pointer);
-      await editorController.syncPointerEvent(pe);
-
-      _preEventType = pe.eventType;
+      var pe = handlePointerEvent(_prePointer, pointer);
+      if (pe == null) continue;
+      _prePointer = pe;
+      await _editorController.syncPointerEvent(_prePointer);
+      if (_prePointer.eventType == IINKPointerEventTypeFlutter.up)
+        await firstStroke(true);
     }
 
     //  第四笔：横（50个点）
+    print('第四笔：横（50个点）');
     for (var i = 0; i < 50; i++) {
       var p = i == 49 ? 0 : (Random().nextInt(400) + 10);
       var pointer = NotePenPointer(x + offset * i, y + 49 * offset, -1, p);
-      var pe = handlePointerEvent(_preEventType, pointer);
-      await editorController.syncPointerEvent(pe);
-
-      _preEventType = pe.eventType;
+      var pe = handlePointerEvent(_prePointer, pointer);
+      if (pe == null) continue;
+      _prePointer = pe;
+      await _editorController.syncPointerEvent(_prePointer);
+      if (_prePointer.eventType == IINKPointerEventTypeFlutter.up)
+        await firstStroke(true);
     }
-  }
-
-  //  '#FFE82A'   ->   0xFFFFE82A
-  int getColorFromHex(String hexColor) {
-    hexColor = hexColor.toUpperCase().replaceAll("#", "");
-    if (hexColor.length == 6) hexColor = "FF" + hexColor;
-    return int.parse(hexColor, radix: 16);
-  }
-
-  initEditorController() async {
-    if (sRealtimeManager.fileStruct.filePath == widget.filePath) {
-      setState(() => editorController = sRealtimeManager.fileStruct.editorController);
-      return;
-    }
-
-    var newController = await EditorController.create(widget.filePath);
-    setState(() => editorController = newController);
-
-    (await File(widget.filePath).exists())
-        ? await editorController.openPackage(widget.filePath)
-        : await editorController.createPackage(widget.filePath);
-  }
-
-  closeEditorController() async {
-    if (sRealtimeManager.fileStruct.filePath != widget.filePath) {
-      await editorController.close();
-    }
-  }
-
-  _onNotepadStateEvent(NotepadStateEvent event) async {
-    if (mounted) setState(() => notepadState = event.state);
   }
 }

@@ -42,7 +42,7 @@ class _ConfigMyscriptEngineState extends State<ConfigMyscriptEngine> {
           'setEngineLanguage: Current-Language zh-CN',
           content: 'Config MyScript Engine before create file(pts)',
           callBack: () async {
-            if (isInitMyscriptSuccess) {
+            if (!isInitMyscriptSuccess) {
               Toast.toast(
                 context,
                 msg: 'Please initMyscript in "my-Settings"',
