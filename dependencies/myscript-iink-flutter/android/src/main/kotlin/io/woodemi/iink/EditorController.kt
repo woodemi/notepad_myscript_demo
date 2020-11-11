@@ -170,8 +170,10 @@ class EditorController(messenger: BinaryMessenger, channelName: String) : Method
                 }
             }
             "waitForIdle" -> {
-                this.editor.waitForIdle()
-                mainThreadHandler.post { result.success(null) }
+                Thread {
+                    this.editor.waitForIdle()
+                    mainThreadHandler.post { result.success(null) }
+                }.start()
             }
             else -> result.notImplemented()
         }
