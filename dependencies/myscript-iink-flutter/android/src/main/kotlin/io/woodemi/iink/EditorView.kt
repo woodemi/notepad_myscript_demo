@@ -12,23 +12,41 @@ import io.flutter.plugin.platform.PlatformView
 import java.lang.Exception
 
 class EditorView(context: Context, messenger: BinaryMessenger, id: Int) : PlatformView {
-    companion object {
-        const val TAG = "editor_view"
+//    companion object {
+//        const val TAG = "editor_view"
+//    }
+//
+//    val displayView = DisplayView(context).apply {
+//        // FIXME https://github.com/flutter/flutter/issues/33756
+//        post { getWindow()?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT)) }
+//        onSizeChanged = {
+//            // TODO
+//        }
+//    }
+//
+//    override fun getView(): View = displayView
+//
+//    override fun dispose() {
+//
+//    }
+
+    @NonNull private final TextView textView;
+
+    NativeView(@NonNull Context context, int id, @Nullable Map<String, Object> creationParams) {
+        textView = new TextView(context);
+        textView.setTextSize(72);
+        textView.setBackgroundColor(Color.rgb(255, 255, 255));
+        textView.setText("Rendered on a native Android view (id: " + id + ")");
     }
 
-    val displayView = DisplayView(context).apply {
-        // FIXME https://github.com/flutter/flutter/issues/33756
-        post { getWindow()?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT)) }
-        onSizeChanged = {
-            // TODO
-        }
+    @NonNull
+    @Override
+    public View getView() {
+        return textView;
     }
 
-    override fun getView(): View = displayView
-
-    override fun dispose() {
-
-    }
+    @Override
+    public void dispose() {}
 }
 
 private fun View.getWindow(): Window? {

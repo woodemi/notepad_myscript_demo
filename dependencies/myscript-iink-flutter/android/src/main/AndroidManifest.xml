@@ -1,2 +1,12 @@
-<manifest package="io.woodemi.iink">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="io.woodemi.iink">
+    <application
+            android:name="io.flutter.app.FlutterApplication"
+            android:label="hybrid"
+            android:icon="@mipmap/ic_launcher">
+        <!-- ... -->
+        <!-- Hybrid composition -->
+        <meta-data
+                android:name="io.flutter.embedded_views_preview"
+                android:value="true" />
+    </application>
 </manifest>

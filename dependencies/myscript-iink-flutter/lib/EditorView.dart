@@ -1,5 +1,8 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -29,7 +32,10 @@ class _EditorViewState extends State<EditorView> {
 
   @override
   Widget build(BuildContext context) {
+    // This is used in the platform side to register the view.
     var viewType = 'iink_view';
+
+    // Pass parameters to the platform side.
     var creationParams = {
       'type': 'editor_view',
     };
@@ -40,11 +46,27 @@ class _EditorViewState extends State<EditorView> {
     };
 
     if (Platform.isAndroid) {
-      return AndroidView(
+      return PlatformViewLink(
         viewType: viewType,
-        creationParams: creationParams,
-        creationParamsCodec: messageCodec,
-        onPlatformViewCreated: onPlatformViewCreated,
+        surfaceFactory:
+            (BuildContext context, PlatformViewController controller) {
+          return AndroidViewSurface(
+            controller: controller,
+            gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
+            hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+          );
+        },
+        onCreatePlatformView: (PlatformViewCreationParams params) {
+          return PlatformViewsService.initSurfaceAndroidView(
+            id: params.id,
+            viewType: viewType,
+            layoutDirection: TextDirection.ltr,
+            creationParams: creationParams,
+            creationParamsCodec: StandardMessageCodec(),
+          )
+            ..addOnPlatformViewCreatedListener(params.onPlatformViewCreated)
+            ..create();
+        },
       );
     } else if (Platform.isIOS) {
       return UiKitView(
