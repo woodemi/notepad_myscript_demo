@@ -108,7 +108,6 @@ class _IInkViewPageState extends State<IInkViewPage> {
       (await File(widget.filePath).exists())
           ? await _editorController.openPackage(widget.filePath)
           : await _editorController.createPackage(widget.filePath);
-
       var value = await _editorController.getPenStyle();
       penStyle = PenStyle.parse(value);
       setState(() => penColor = penStyle.color);

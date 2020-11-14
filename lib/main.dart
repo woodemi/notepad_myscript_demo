@@ -36,6 +36,8 @@ class _HomePageState extends State<HomePage> {
 
   var notepadState = NotepadState.Disconnected;
 
+  EditorController newController;
+
   StreamSubscription<NotepadStateEvent> _notepadStateSubscription;
 
   @override
@@ -108,7 +110,7 @@ class _HomePageState extends State<HomePage> {
                   context,
                   msg: 'filePath = $filePath',
                 );
-                var newController = await EditorController.create(filePath);
+                newController = await EditorController.create(filePath);
                 Toast.toast(
                   context,
                   msg: 'EditorController.create(filePath)',
@@ -120,15 +122,10 @@ class _HomePageState extends State<HomePage> {
                   context,
                   msg: 'EditorController.openPackage/createPackage',
                 );
-                await newController.exportText();
+                await newController.save();
                 Toast.toast(
                   context,
-                  msg: 'newController.exportText()',
-                );
-                await newController.clear();
-                Toast.toast(
-                  context,
-                  msg: 'newController.clear()',
+                  msg: 'newController.save()',
                 );
                 await _requestListDocumentsDirectory();
                 Toast.toast(
@@ -175,8 +172,9 @@ class _HomePageState extends State<HomePage> {
         trailing: deleteFileSwich ? Icon(Icons.delete_forever) : null,
         onTap: () async {
           if (deleteFileSwich) {
-            File file = await File(ptsList[index].path);
-            await file.deleteSync(recursive: true);
+            // File file = await File(ptsList[index].path);
+            // await file.deleteSync(recursive: true);
+            await newController.deletePackage(ptsList[index].path);
             await _requestListDocumentsDirectory();
           } else {
             if (!isInitMyscriptSuccess) {
