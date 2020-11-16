@@ -560,8 +560,10 @@ class _IInkViewPageState extends State<IInkViewPage> {
       if (pe == null) continue;
       _prePointer = pe;
       await _editorController.syncPointerEvent(_prePointer);
-      if (_prePointer.eventType == IINKPointerEventTypeFlutter.up)
+      if (_prePointer.eventType == IINKPointerEventTypeFlutter.up) {
+        await _editorController.save();
         await firstStroke(true);
+      }
     }
 
     //  第二笔：横（50个点）
@@ -573,8 +575,10 @@ class _IInkViewPageState extends State<IInkViewPage> {
       if (pe == null) continue;
       _prePointer = pe;
       await _editorController.syncPointerEvent(_prePointer);
-      if (_prePointer.eventType == IINKPointerEventTypeFlutter.up)
+      if (_prePointer.eventType == IINKPointerEventTypeFlutter.up) {
+        await _editorController.save();
         await firstStroke(true);
+      }
     }
 
     //  第三笔：竖（50个点）
@@ -586,8 +590,10 @@ class _IInkViewPageState extends State<IInkViewPage> {
       if (pe == null) continue;
       _prePointer = pe;
       await _editorController.syncPointerEvent(_prePointer);
-      if (_prePointer.eventType == IINKPointerEventTypeFlutter.up)
+      if (_prePointer.eventType == IINKPointerEventTypeFlutter.up) {
+        await _editorController.save();
         await firstStroke(true);
+      }
     }
 
     //  第四笔：横（50个点）
@@ -599,8 +605,10 @@ class _IInkViewPageState extends State<IInkViewPage> {
       if (pe == null) continue;
       _prePointer = pe;
       await _editorController.syncPointerEvent(_prePointer);
-      if (_prePointer.eventType == IINKPointerEventTypeFlutter.up)
+      if (_prePointer.eventType == IINKPointerEventTypeFlutter.up) {
+        await _editorController.save();
         await firstStroke(true);
+      }
     }
   }
 }

@@ -96,6 +96,7 @@ class RealtimeManager {
     _prePointer = pe;
     await fileStruct.editorController.syncPointerEvent(_prePointer);
     if (_prePointer.eventType == IINKPointerEventTypeFlutter.up) {
+      await fileStruct.editorController.save();
       await firstStrokeEnd(true);
     }
   }
