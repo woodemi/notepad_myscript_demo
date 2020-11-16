@@ -19,7 +19,7 @@ var iink_controllers: MutableMap<String, EditorController> = mutableMapOf()
 
 private val mainThreadHandler = Handler(Looper.getMainLooper())
 
-class MyscriptIinkPlugin: MethodCallHandler {
+class MyscriptIinkPlugin : MethodCallHandler {
     companion object {
         const val PACKAGE_NAME = "myscript_iink"
 
@@ -49,6 +49,7 @@ class MyscriptIinkPlugin: MethodCallHandler {
         }
 
         lateinit var iink_registrar: Registrar
+
         @JvmStatic
         fun registerWith(registrar: Registrar) {
             iink_registrar = registrar
@@ -106,7 +107,7 @@ class MyscriptIinkPlugin: MethodCallHandler {
     private fun closeChannel(channelName: String) {
         if (iink_controllers.containsKey(channelName)) {
             Thread {
-                var controller= iink_controllers[channelName]!!
+                var controller = iink_controllers[channelName]!!
                 controller.close()
                 iink_controllers.remove(channelName)
             }.start()

@@ -49,6 +49,10 @@ class EditorController {
     await _methodChannel.invokeMethod('openPackage', {'path': path});
   }
 
+  Future<void> deletePackage(String path) async {
+    await _methodChannel.invokeMethod('deletePackage', {'path': path});
+  }
+
   Future<void> bindPlatformView(int id) async {
     await _methodChannel.invokeMethod('bindPlatformView', {'id': id});
   }
@@ -221,6 +225,10 @@ class EditorController {
 
   Future<void> clear() async {
     return await _methodChannel.invokeMethod('clear');
+  }
+
+  Future<void> save() async {
+    return await _methodChannel.invokeMethod('save');
   }
 
   Future<bool> canUndo() async {
