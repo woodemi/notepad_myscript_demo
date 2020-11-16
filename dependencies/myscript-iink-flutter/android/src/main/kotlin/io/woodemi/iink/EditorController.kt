@@ -14,6 +14,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
 import java.util.*
 
 private val mainThreadHandler = Handler(Looper.getMainLooper())
@@ -31,10 +32,26 @@ class EditorController(messenger: BinaryMessenger, channelName: String) : Method
     }
 
     fun close() {
-        editor.waitForIdle()
-        editor.part?.`package`?.close()
-        editor.renderer.close()
-        editor.close()
+        try {
+            if (editor != null && !editor.isClosed) {
+                editor.waitForIdle()
+                if (editor.renderer != null && !editor.renderer.isClosed) {
+                    editor.renderer.close()
+                }
+                if (editor.part.`package`.partCount > 0) {
+                    Log.d(TAG, "content part count: ${editor.part.`package`.partCount}")
+                    editor.part.close()
+                    editor.part.`package`.close()
+                    editor.part = null
+                }
+                editor.setFontMetricsProvider(null)
+                editor.close()
+                renderTarget = null
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+            Log.d(TAG, "close channel error")
+        }
     }
 
     override fun onMethodCall(methodCall: MethodCall, result: MethodChannel.Result) {
@@ -44,13 +61,18 @@ class EditorController(messenger: BinaryMessenger, channelName: String) : Method
                 val viewScale = methodCall.argument<Double>("viewScale")
                 val DpiX = methodCall.argument<Double>("DpiX")
                 val DpiY = methodCall.argument<Double>("DpiY")
-
+                if (this::editor.isInitialized && editor != null && !editor.isClosed && editor.part != null) {
+                    close()
+                }
                 initRenderEditor(DpiX!!.toFloat(), DpiY!!.toFloat())
                 editor.renderer.viewScale = viewScale!!.toFloat()
                 mainThreadHandler.post { result.success(null) }
             }
             "createPackage" -> {
                 val path = methodCall.argument<String>("path")
+                if (editor != null && !editor.isClosed && editor.part != null) {
+                    close()
+                }
                 val contentPackage = MyscriptIinkPlugin.engine.createPackage(path)
                 editor.part = contentPackage.createPart("Text")
                 renderTarget?.invalidate(editor.renderer, EnumSet.allOf(IRenderTarget.LayerType::class.java))
@@ -58,9 +80,36 @@ class EditorController(messenger: BinaryMessenger, channelName: String) : Method
             }
             "openPackage" -> {
                 val path = methodCall.argument<String>("path")
+                if (editor != null && !editor.isClosed && editor.part != null) {
+                    close()
+                }
                 val contentPackage = MyscriptIinkPlugin.engine.openPackage(path)
                 editor.part = contentPackage.getPart(0)
                 renderTarget?.invalidate(editor.renderer, EnumSet.allOf(IRenderTarget.LayerType::class.java))
+                mainThreadHandler.post { result.success(null) }
+            }
+            "deletePackage" -> {
+                val path = methodCall.argument<String>("path")
+                try {
+                    if (editor != null && !editor.isClosed) {
+                        if (editor.renderer != null && !editor.renderer.isClosed) {
+                            editor.renderer.close()
+                        }
+                        if (editor.part.`package`.partCount > 0) {
+                            Log.d(TAG, "content part count: ${editor.part.`package`.partCount}")
+                            editor.part.close()
+                            editor.part.`package`.close()
+                            editor.part = null
+                        }
+                        editor.setFontMetricsProvider(null)
+                        editor.close()
+                        renderTarget = null
+                    }
+                    MyscriptIinkPlugin.engine.deletePackage(path)
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                    Log.d(TAG, "delete package $path error")
+                }
                 mainThreadHandler.post { result.success(null) }
             }
             "bindPlatformView" -> {
@@ -95,8 +144,8 @@ class EditorController(messenger: BinaryMessenger, channelName: String) : Method
                 }.start()
             }
             "exportText" -> {
-                this.editor.part.`package`.save()
                 try {
+                    this.editor.part.`package`.save()
                     val text = this.editor.export_(null, MimeType.TEXT)
                     mainThreadHandler.post { result.success(text) }
                 } catch (e: Exception) {
@@ -104,8 +153,8 @@ class EditorController(messenger: BinaryMessenger, channelName: String) : Method
                 }
             }
             "exportJIIX" -> {
-                this.editor.part.`package`.save()
                 try {
+                    this.editor.part.`package`.save()
                     val jiix = this.editor.export_(null, MimeType.JIIX)
                     mainThreadHandler.post { result.success(jiix) }
                 } catch (e: Exception) {
@@ -114,6 +163,7 @@ class EditorController(messenger: BinaryMessenger, channelName: String) : Method
             }
             "exportPNG" -> {
                 Thread {
+                    this.editor.part.`package`.save()
                     val background = methodCall.argument<ByteArray>("gifPathName")
                     val imageBytes = editor.createImage(_displayViewSize().width, _displayViewSize().height, background)
                     mainThreadHandler.post { result.success(imageBytes) }
@@ -121,6 +171,7 @@ class EditorController(messenger: BinaryMessenger, channelName: String) : Method
             }
             "exportJPG" -> {
                 Thread {
+                    this.editor.part.`package`.save()
                     val background = methodCall.argument<ByteArray>("skinBytes")
                     val imageBytes = editor.createImage(_displayViewSize().width, _displayViewSize().height, background)
                     mainThreadHandler.post { result.success(imageBytes) }
@@ -128,15 +179,23 @@ class EditorController(messenger: BinaryMessenger, channelName: String) : Method
             }
             "exportGIF" -> {
                 Thread {
+                    this.editor.part.`package`.save()
                     val gifPath = methodCall.argument<String>("gifPath")!!
                     var bitmaps = createGifBitmaps(methodCall)
                     var gifFilePath = createGif(bitmaps, gifPath)
                     mainThreadHandler.post { result.success(gifFilePath) }
                 }.start()
             }
+            "save" -> {
+                Thread {
+                    this.editor.part.`package`.save()
+                    mainThreadHandler.post { result.success(null) }
+                }.start()
+            }
             "clear" -> {
                 this.editor.clear()
                 var contentPackage = this.editor.part.`package`
+                this.editor.part.close()
                 contentPackage.removePart(this.editor.part)
                 contentPackage.createPart("Text")
                 this.editor.part = contentPackage.getPart(0)
@@ -211,8 +270,6 @@ class EditorController(messenger: BinaryMessenger, channelName: String) : Method
             }
             "up" -> {
                 this.editor.pointerUp(x.toFloat(), y.toFloat(), t.toLong(), f.toFloat(), formatWithPointerType(pointerType), pointerId)
-                this.editor.part.`package`.save()
-                Log.d(TAG, "this.editor.part.`package`.save()")
             }
             "cancel" -> {
                 this.editor.pointerCancel(pointerId)

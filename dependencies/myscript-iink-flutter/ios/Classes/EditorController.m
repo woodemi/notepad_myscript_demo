@@ -52,6 +52,9 @@ IINKPointerEventType parseEventType(NSString *eventType) {
     [self.editor waitForIdle];
     [self.editor.part.package saveWithError:nil];
     [self.editor.renderer setDelegate:nil];
+    self.editor.part = nil;
+    self.renderTarget = nil;
+    self.editor = nil;
 }
 
 - (void)handleMethodCall:(FlutterMethodCall *)call result:(FlutterResult)result {
@@ -61,6 +64,9 @@ IINKPointerEventType parseEventType(NSString *eventType) {
         NSNumber *viewScale = arguments[@"viewScale"];
         NSNumber *DpiX = arguments[@"DpiX"];
         NSNumber *DpiY = arguments[@"DpiY"];
+        if (self.editor) {
+            [self close];
+        }
         [self initRenderEditorWithDpiX:DpiX.floatValue WithDpiY:DpiY.floatValue];
         self.editor.renderer.viewScale = viewScale.doubleValue;
         result(nil);
@@ -75,6 +81,13 @@ IINKPointerEventType parseEventType(NSString *eventType) {
         self.editor.part = [contentPackage getPartAt:0 error:nil];
         IINKLayerType layers = IINKLayerTypeBackground | IINKLayerTypeTemporary |IINKLayerTypeCapture | IINKLayerTypeModel;
         [self.renderTarget invalidate:self.editor.renderer layers:layers];
+        result(nil);
+    }  else if ([@"deletePackage" isEqualToString:call.method]) {
+        [self.editor.renderer setDelegate:nil];
+        self.editor.part = nil;
+        self.renderTarget = nil;
+        [self.editor.engine deletePackage:arguments[@"path"] error:nil];
+        self.editor = nil;
         result(nil);
     } else if ([@"bindPlatformView" isEqualToString:call.method]) {
         NSNumber *viewId = arguments[@"id"];
@@ -127,12 +140,13 @@ IINKPointerEventType parseEventType(NSString *eventType) {
     } else if ([@"exportPNG" isEqualToString:call.method]) {
         dispatch_queue_t queue=  dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
         dispatch_async(queue, ^{
+            [[self.editor.part package] saveWithError:nil];
             NSNumber *deviceWidth_mm = call.arguments[@"DeviceWidth_mm"];
             FlutterStandardTypedData *skinImageData = call.arguments[@"skinBytes"];
-            
+
             CGSize contentSize = [self contentImageSize:[deviceWidth_mm floatValue]];
             UIImage *pngImage = [self createaContentImage:self.editor.renderer drawFrame: CGRectMake(0, 0, contentSize.width, contentSize.height)];
-            
+
             NSData *data = UIImagePNGRepresentation(pngImage);
             dispatch_async(dispatch_get_main_queue(), ^{
                 result([FlutterStandardTypedData typedDataWithBytes:data]);
@@ -141,6 +155,7 @@ IINKPointerEventType parseEventType(NSString *eventType) {
     } else if ([@"exportJPG" isEqualToString:call.method]) {
         dispatch_queue_t queue= dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
         dispatch_async(queue, ^{
+            [[self.editor.part package] saveWithError:nil];
             UIImage *fullImage = [self createFullImage:call.arguments];
             NSData *data = UIImageJPEGRepresentation(fullImage, 0.5);
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -150,6 +165,7 @@ IINKPointerEventType parseEventType(NSString *eventType) {
     } else if ([@"exportGIF" isEqualToString:call.method]) {
         dispatch_queue_t queue= dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
         dispatch_async(queue, ^{
+            [[self.editor.part package] saveWithError:nil];
             NSString *gifPath = call.arguments[@"gifPath"];
             NSArray *images = [self createGifImages:call.arguments];
             NSString *gifFilePath = [self createGifImages:images delays:nil loopCount:0 gifPath: gifPath];
@@ -170,6 +186,9 @@ IINKPointerEventType parseEventType(NSString *eventType) {
                 result(nil);
             });
         });
+    } else if ([@"save" isEqualToString:call.method]) {
+        [[self.editor.part package] saveWithError:nil];
+        result(nil);
     } else if ([@"canUndo" isEqualToString:call.method]) {
         result(@([self.editor canUndo]));
     } else if ([@"undo" isEqualToString:call.method]) {
@@ -215,7 +234,6 @@ IINKPointerEventType parseEventType(NSString *eventType) {
         [self.editor pointerMove:point at:t force:f type:pointerType pointerId:pointerId error:nil];
     } else if ([eventType isEqualToString:@"up"]) {
         [self.editor pointerUp:point at:t force:f type:pointerType pointerId:pointerId error:nil];
-        [self.editor.part.package saveWithError:nil];
     } else if ([eventType isEqualToString:@"cancel"]) {
         [self.editor pointerCancel:pointerId error:nil];
     }
@@ -279,10 +297,10 @@ IINKPointerEventType parseEventType(NSString *eventType) {
     NSNumber *editArea_xOffsetScale = dictionary[@"EditArea_xOffsetScale"];
     FlutterStandardTypedData *skinImageData = dictionary[@"skinBytes"];
     UIImage *skinImage = [UIImage imageWithData:skinImageData.data];
-    
+
     CGSize contentSize = [self contentImageSize:[deviceWidth_mm floatValue]];
     UIImage *contentImage = [self createaContentImage:self.editor.renderer drawFrame: CGRectMake(0, 0, contentSize.width, contentSize.height)];
-    
+
     CGRect mainFrame = [[UIScreen mainScreen] bounds];
     CGRect skinArea = CGRectMake(0, 0, mainFrame.size.width, mainFrame.size.width * (21000.0 / 15800.0));
     CGFloat editArea_xOffset = skinArea.size.width * [editArea_xOffsetScale floatValue];
